@@ -1,6 +1,13 @@
 package metric.views;
 
+import helpers.PopupWindow;
+
+import java.util.List;
+
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.Tree;
@@ -14,6 +21,7 @@ import org.eclipse.ui.*;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.SWT;
 
+import codeAnalysis.ClassInfo;
 import codeAnalysis.Test;
 
 
@@ -61,8 +69,11 @@ public class SampleView extends ViewPart {
 	Composite parent;
 	private TreeViewer viewer;
 	private Action action1;
+	private Action action2;
 	private Action doubleClickAction;
 
+	private List<ClassInfo> klasses;
+	
 	/**
 	 * The constructor.
 	 */
@@ -74,7 +85,7 @@ public class SampleView extends ViewPart {
 	 * to create the viewer and initialize it.
 	 */
 	public void createPartControl(Composite parent) {
-		Test.access();
+		//Test.access();
 		
 		
 		this.parent = parent;
@@ -134,8 +145,6 @@ public class SampleView extends ViewPart {
 		
 		viewer.setContentProvider(new MetricResultsViewContentProvider());
 		viewer.setLabelProvider(new MetricResultsViewLabelProvider());;
-		//viewer.setInput(getViewSite());
-		viewer.setInput(Test.getClasses());
 
 		// Create the help context id for the viewer's control
 		PlatformUI.getWorkbench().getHelpSystem().setHelp(viewer.getControl(), "metric.views");
@@ -166,17 +175,35 @@ public class SampleView extends ViewPart {
 	
 	private void fillLocalToolBar(IToolBarManager manager) {
 		manager.add(action1);
+		manager.add(action2);
 	}
 
 	private void makeActions() {
 		action1 = new Action() {
 			public void run() {
-				Test.access();
+				klasses = Test.access();
+				viewer.setInput(klasses);
+				action2.setEnabled(true);
 			}
 		};
+
 		action1.setText("Run Metrics");
 		action1.setToolTipText("Run Metrics");
 		action1.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().
+			getImageDescriptor(ISharedImages.IMG_OBJS_INFO_TSK));
+
+		action2 = new Action(){
+			public void run() {
+				Display display = Display.getDefault();
+				Shell shell = new Shell(display);
+				PopupWindow p = new PopupWindow(shell, klasses);
+				int result = p.open();						
+			}
+		};
+		action2.setEnabled(false);
+		action2.setText("Upload Metrics");
+		action2.setToolTipText("Upload Metrics");
+		action2.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().
 			getImageDescriptor(ISharedImages.IMG_OBJS_INFO_TSK));
 		
 		doubleClickAction = new Action() {
@@ -207,7 +234,7 @@ public class SampleView extends ViewPart {
 		//manager.add(action1);
 		//manager.add(action2);
 		// Other plug-ins can contribute there actions here
-		manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
+		//manager.add(new Separator(IWorkbenchActionConstants.MB_ADDITIONS));
 	}
 
 	/**

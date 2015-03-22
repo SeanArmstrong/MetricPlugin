@@ -25,6 +25,8 @@ import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.swt.custom.CBanner;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 
 public class Test {
 
@@ -117,20 +119,28 @@ public class Test {
 		}
 	}
  
-	public static void access(){
+	public static List<ClassInfo> access(){
+		klasses = new ArrayList<ClassInfo>();
 		try {
 			ParseFilesInDir();
 		} catch (IOException e) {
 			System.out.println("File error");
 		} catch (CoreException e) {
 			// TODO Auto-generated catch block
+		//	e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		toJson j = new toJson(klasses);
-		j.convert();
+		
+		
+		
+		//toJson j = new toJson(klasses);
+		//j.convert();
 		
 		//createTotalClass();
 		//printInfo();
+		return klasses;
 	}
 	
 	public static void createTotalClass(){
