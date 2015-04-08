@@ -6,17 +6,21 @@ import java.util.List;
 
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Table;
-import org.eclipse.swt.widgets.TableColumn;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
+import org.eclipse.ui.dialogs.ElementListSelectionDialog;
 import org.eclipse.ui.part.*;
+import org.eclipse.core.internal.resources.Project;
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.internal.ui.packageview.PackageFragmentRootContainer;
 import org.eclipse.jface.viewers.*;
-import org.eclipse.swt.graphics.Image;
+import org.eclipse.jface.window.Window;
 import org.eclipse.jface.action.*;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.*;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.SWT;
@@ -43,7 +47,7 @@ import codeAnalysis.Test;
  * <p>
  */
 
-public class SampleView extends ViewPart {
+public class MetricView extends ViewPart {
 	
 	/**
 	 * Column names
@@ -52,19 +56,20 @@ public class SampleView extends ViewPart {
 	private final String COLUMN1 = "Package";
 	private final String COLUMN2 = "Lines";
 	private final String COLUMN3 = "Methods";
-	private final String COLUMN4 = "Variables";
+	private final String COLUMN4 = "Variables";;
 	private final String COLUMN5 = "Average Lines Per Method";
 	private final String COLUMN6 = "DOT";
 	private final String COLUMN7 = "CBO";
 	private final String COLUMN8 = "LCOM";
 	private final String COLUMN9 = "Complexity (WMC)";
 	private final String COLUMN10 = "Complexity (AMC)";
+	private final String COLUMN11 = "Complexity (SDMC)";
 	
 	
 	/**
 	 * The ID of the view as specified by the extension.
 	 */
-	public static final String ID = "gfdg.views.SampleView";
+	public static final String ID = "gfdg.views.Metric";
 
 	Composite parent;
 	private TreeViewer viewer;
@@ -77,7 +82,7 @@ public class SampleView extends ViewPart {
 	/**
 	 * The constructor.
 	 */
-	public SampleView() {
+	public MetricView() {
 	}
 
 	/**
@@ -138,6 +143,10 @@ public class SampleView extends ViewPart {
 		column.setText(COLUMN10);
 		column.setWidth(100);
 		
+		column = new TreeColumn(table, SWT.LEFT);
+		column.setText(COLUMN11);
+		column.setWidth(100);
+		
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 		
@@ -159,7 +168,7 @@ public class SampleView extends ViewPart {
 		menuMgr.setRemoveAllWhenShown(true);
 		menuMgr.addMenuListener(new IMenuListener() {
 			public void menuAboutToShow(IMenuManager manager) {
-				SampleView.this.fillContextMenu(manager);
+				MetricView.this.fillContextMenu(manager);
 			}
 		});
 		Menu menu = menuMgr.createContextMenu(viewer.getControl());
@@ -181,17 +190,30 @@ public class SampleView extends ViewPart {
 	private void makeActions() {
 		action1 = new Action() {
 			public void run() {
-				klasses = Test.access();
-				viewer.setInput(klasses);
-				action2.setEnabled(true);
+				Display display = Display.getDefault();
+				Shell shell = new Shell(display);
+				//ProjectSelectionWindow p = new ProjectSelectionWindow(shell, klasses);
+				ElementListSelectionDialog dialog=new ElementListSelectionDialog(shell, new LabelProvider());
+				dialog.setTitle("Project Selection");
+				dialog.setMessage("Select a Project to run the Metrics Against\nYou can search in the box below");
+				dialog.setElements(getProjects());
+				
+				int result = dialog.open();	
+				if(result == Window.OK){
+					System.out.println(((Object)dialog.getResult()[0]).toString());
+					klasses = Test.access((Project)dialog.getResult()[0]);
+					viewer.setInput(klasses);
+					action2.setEnabled(true);
+				}
 			}
 		};
 
 		action1.setText("Run Metrics");
 		action1.setToolTipText("Run Metrics");
 		action1.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().
-			getImageDescriptor(ISharedImages.IMG_OBJS_INFO_TSK));
-
+			getImageDescriptor(ISharedImages.IMG_OBJS_TASK_TSK));
+		//ISharedImages.IMG_OBJS_TASK_TSK
+		
 		action2 = new Action(){
 			public void run() {
 				Display display = Display.getDefault();
@@ -204,15 +226,8 @@ public class SampleView extends ViewPart {
 		action2.setText("Upload Metrics");
 		action2.setToolTipText("Upload Metrics");
 		action2.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().
-			getImageDescriptor(ISharedImages.IMG_OBJS_INFO_TSK));
+			getImageDescriptor(ISharedImages.IMG_ETOOL_SAVE_EDIT));
 		
-		doubleClickAction = new Action() {
-			public void run() {
-				ISelection selection = viewer.getSelection();
-				Object obj = ((IStructuredSelection)selection).getFirstElement();
-				Test.access();
-			}
-		};
 	}
 
 	private void hookDoubleClickAction() {
@@ -243,4 +258,9 @@ public class SampleView extends ViewPart {
 	public void setFocus() {
 		viewer.getControl().setFocus();
 	}
+	
+	private IProject[] getProjects(){
+		return ResourcesPlugin.getWorkspace().getRoot().getProjects();
+	}
+	
 }

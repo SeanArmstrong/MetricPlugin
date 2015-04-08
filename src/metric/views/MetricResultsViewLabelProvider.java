@@ -52,6 +52,8 @@ public class MetricResultsViewLabelProvider extends LabelProvider implements ITa
 					return Double.toString(((ClassInfo) element).weightedMethodsPerClass);
 				case 10:
 					return Double.toString(((ClassInfo) element).averageMethodComplexity);
+				case 11:
+					return Double.toString(((ClassInfo) element).SDMC);
 				default:
 					return "-";
 				}

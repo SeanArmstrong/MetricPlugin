@@ -17,10 +17,12 @@ public class ClassInfo extends Info{
 	public double weightedMethodsPerClass = 0;
 	public int depthOfInheritance;
 	public double LCOM;
-	
 	public double CBO;
+	public double SDMC;
 	
 	public List<MethodInfo> methods;
+	
+	public boolean isTotal;
 	
 	public ClassInfo(String name,
 					String associatedPackage,
@@ -34,7 +36,8 @@ public class ClassInfo extends Info{
 					int depthOfInheritance,
 					double CBO,
 					double LCOM,
-					List<MethodInfo> methods){
+					List<MethodInfo> methods,
+					boolean isTotal){
 
 		this.name = name;
 		this.associatedPackage = associatedPackage;
@@ -44,11 +47,18 @@ public class ClassInfo extends Info{
 		this.numberOfPrivateVariables = numberOfPrivateVariables;
 		this.numberOfLines = numberOfLines;
 		this.numberOfMethods = numberOfMethods;
-		this.averageLinesPerMethod = averageLinesPerMethod;
+		
+		if(numberOfMethods > 0){ 
+			this.averageLinesPerMethod = averageLinesPerMethod;
+		}else{
+			this.averageLinesPerMethod = 0;
+		}
 		this.depthOfInheritance = depthOfInheritance;
 		this.CBO = CBO;
 		this.LCOM = LCOM;
 		this.methods = methods;
+		
+		this.isTotal = isTotal;
 		
 		for(MethodInfo m : methods){
 			weightedMethodsPerClass += m.complexity;
@@ -56,7 +66,23 @@ public class ClassInfo extends Info{
 		
 		if(methods.size() > 0){
 			averageMethodComplexity = weightedMethodsPerClass / methods.size();
+		} else{
+			averageMethodComplexity = 0;
 		}
+		
+		// Must have at least two methods
+		if(methods.size() > 2){
+			//SDMC
+			double SDMCSum = 0.0;
+			// = sqr(sum(amc - ci)^2 / methods.size() -1)
+			for(MethodInfo m : methods){
+				SDMCSum += (averageMethodComplexity - m.complexity) * (averageMethodComplexity - m.complexity);
+			}
+			SDMC = Math.sqrt(SDMCSum / ((double) methods.size() - 1.0));
+		}else{
+			SDMC = 0;
+		}
+
 	}
 
 	@Override
@@ -74,7 +100,8 @@ public class ClassInfo extends Info{
 				"\nCoupling Between Objects: " + CBO + 
 				"\nLack of Cohesion Methods: " + LCOM +
 				"\nWeighted Methods per Class: " + weightedMethodsPerClass + 
-				"\nAverage Method Complexity: " + averageMethodComplexity);
+				"\nAverage Method Complexity: " + averageMethodComplexity + 
+				"\nStandard Deviation Method Complexity: " + SDMC);
 	}
 
 	@Override

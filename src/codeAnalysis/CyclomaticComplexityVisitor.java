@@ -1,5 +1,5 @@
 package codeAnalysis;
-import java.util.regex.Matcher;
+/*import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.jdt.core.dom.AST;
@@ -21,7 +21,7 @@ import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.WhileStatement;
 
-/*public class CyclomaticComplexityVisitor extends ASTVisitor {
+public class CyclomaticComplexityVisitor extends ASTVisitor {
 	
 	
 	public CyclomaticComplexityVisitor(){

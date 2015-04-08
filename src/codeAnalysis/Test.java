@@ -5,10 +5,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -16,17 +15,18 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
-import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.MethodDeclaration;
-import org.eclipse.jdt.core.dom.SimpleName;
-import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.swt.custom.CBanner;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Shell;
+import org.eclipse.jdt.internal.ui.packageview.PackageFragmentRootContainer;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.ISelectionService;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.internal.Workbench;
 
 public class Test {
 
@@ -72,7 +72,8 @@ public class Test {
 					classV.getDepthOfInheritance(),
 					couplingV.getUniqueCouplingObjectsSize(),
 					cohesionMV.getLCOM(),
-					methodsVisitor.getMethods());
+					methodsVisitor.getMethods(),
+					false);
 			
 			klasses.add(klass);
 		}
@@ -99,18 +100,26 @@ public class Test {
 		return  fileData.toString();	
 	}
  
-	//loop directory to get file list
-	public static void ParseFilesInDir() throws IOException, CoreException{
-		IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
-		for(IProject project : projects ){
-			IPath projPath = project.getLocation();
-			String dirPath = projPath + File.separator+"src"+File.separator;
-			File root = new File(dirPath);
-			
-			File[] files = root.listFiles();
-			String filePath = null;
-						
-			for (File f : files ) {
+	public static void ParseFilesInDir(IProject project) throws IOException{
+		IPath projPath = project.getLocation();
+		String dirPath = projPath + File.separator+"src"+File.separator;
+		File root = new File(dirPath);
+		
+		File[] files = root.listFiles();
+		String filePath = null;
+					
+		for (File f : files ) {
+			System.out.println(f.getAbsolutePath() + " : " + f.isDirectory());
+			if(f.isDirectory()){ //If a package
+				for(File subF : f.listFiles()){
+					if(subF.isFile()){
+						filePath = subF.getAbsolutePath();
+						System.out.println(filePath);
+						parse(readFileToString(filePath), JavaCore.create(project), filePath);
+					}
+				}
+			}else{
+				
 				filePath = f.getAbsolutePath();
 				if(f.isFile()){
 					parse(readFileToString(filePath), JavaCore.create(project), filePath);
@@ -118,27 +127,18 @@ public class Test {
 			}
 		}
 	}
- 
-	public static List<ClassInfo> access(){
+	
+	public static List<ClassInfo> access(IProject project){
 		klasses = new ArrayList<ClassInfo>();
 		try {
-			ParseFilesInDir();
+			ParseFilesInDir(project);
 		} catch (IOException e) {
 			System.out.println("File error");
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-		//	e.printStackTrace();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
-		
-		//toJson j = new toJson(klasses);
-		//j.convert();
-		
-		//createTotalClass();
+			
+		createTotalClass();
 		//printInfo();
 		return klasses;
 	}
@@ -156,6 +156,7 @@ public class Test {
 		double averageLCOM = 0.0;
 		double averageWMC = 0.0;
 		double averageAMC = 0.0;
+		double averageSDMC = 0.0;
 		
 		int maxDepth = 0;
 		
@@ -173,6 +174,7 @@ public class Test {
 			averageLCOM += klass.LCOM;
 			averageWMC += klass.weightedMethodsPerClass;
 			averageAMC += klass.averageMethodComplexity;
+			averageSDMC += klass.SDMC;
 			
 			if(klass.depthOfInheritance > maxDepth){
 				maxDepth = klass.depthOfInheritance;
@@ -184,6 +186,7 @@ public class Test {
 		averageLCOM /= klasses.size();
 		averageWMC /= klasses.size();
 		averageAMC /= klasses.size();
+		averageSDMC /= klasses.size();
 		
 		List<MethodInfo>  m = new ArrayList<MethodInfo>();
 		
@@ -200,10 +203,12 @@ public class Test {
 				maxDepth,
 				averageCBO,
 				averageLCOM,
-				m);
+				m,
+				true);
 		
 		klass.averageMethodComplexity = averageAMC;
 		klass.weightedMethodsPerClass = averageWMC;
+		klass.SDMC = averageSDMC;
 		klasses.add(klass);
 		
 		
@@ -229,33 +234,3 @@ public class Test {
 		System.out.println("Class Count: " + klasses.size());
 	}
 }
-
-/*
-
-public static void ParseMethodsInClasses(){
-for(int i = 0; i < klasses.size(); i++){
-	ClassInfo klass = klasses.get(i);
-	for(int j = 0; j < klass.methods.size(); j++){
-		//System.out.println(klass.methods.get(j).body);
-		ParseMethod(klass.methods.get(j).body);
-	}	
-}
-}
-
-public static void ParseMethod(String str){
-ASTParser parser = ASTParser.newParser(AST.JLS3);
-parser.setSource(str.toCharArray());
-parser.setKind(ASTParser.K_COMPILATION_UNIT);
-parser.setResolveBindings(true);
-
-final CompilationUnit cu = (CompilationUnit) parser.createAST(null);
-System.out.println("CU = " + cu.toString());
-ClassVisitor cv = new ClassVisitor();
-//CyclomaticComplexityVisitor ccv = new CyclomaticComplexityVisitor();
-
-cu.accept(ccv);
-
-System.out.println(ccv.paths);
-}
-
-*/

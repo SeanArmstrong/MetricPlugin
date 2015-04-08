@@ -18,6 +18,7 @@ public class CohesionMethodVisitor extends ASTVisitor {
 	
 	public boolean visit(VariableDeclarationFragment node){
 		// Does this cause an error if variables are defined last?
+		// Should collect all variables then all methods then run code
 		m.put(node.getName().toString(), 0);
 		return true;
 	}
@@ -51,6 +52,12 @@ public class CohesionMethodVisitor extends ASTVisitor {
 		
 		//<p> - |M|/1 - |M|
 		
+		if(m.size() == 0){
+			return 0;
+		}
+		if(numberOfMethodsThatAccessFields == 1){
+			numberOfMethodsThatAccessFields = 2;
+		}
 		
 		double meanMethodAccess = 0;
 		for (int value : m.values()) {
